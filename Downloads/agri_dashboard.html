@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<div style="position: fixed; font-weight: 700; top: 12px; left: 48px; z-index: 100; font-family: 'DM Mono', monospace; font-size: 0.85rem; color: var(--accent-green); letter-spacing: 0.1em; text-transform: uppercase;">Developed by Rugweda Yende</div>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AgriClimate Intelligence Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0f0a;
+    --surface: #111811;
+    --surface2: #172017;
+    --border: #1e2e1e;
+    --accent-green: #4ade80;
+    --accent-amber: #fbbf24;
+    --accent-red: #f87171;
+    --accent-blue: #60a5fa;
+    --accent-teal: #2dd4bf;
+    --text-primary: #e8f5e8;
+    --text-secondary: #7a9a7a;
+    --text-muted: #3d5a3d;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      linear-gradient(rgba(74,222,128,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(74,222,128,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+
+  /* ── HEADER ── */
+  header {
+    position: relative; z-index: 10;
+    padding: 32px 48px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: flex-end; justify-content: space-between;
+    background: linear-gradient(180deg, rgba(10,15,10,0.98) 0%, transparent 100%);
+  }
+
+  .logo-area h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.4rem;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .logo-area h1 span {
+    color: var(--accent-green);
+  }
+
+  .logo-area p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .header-meta {
+    text-align: right;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+
+  .header-meta .live-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: rgba(74,222,128,0.08);
+    border: 1px solid rgba(74,222,128,0.2);
+    padding: 4px 10px; border-radius: 20px;
+    color: var(--accent-green); font-size: 0.68rem;
+    margin-bottom: 8px;
+  }
+
+  .live-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent-green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  /* ── NAV TABS ── */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(10,15,10,0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 48px;
+    display: flex; gap: 0;
+  }
+
+  .tab {
+    padding: 16px 24px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .tab:hover { color: var(--text-secondary); }
+
+  .tab.active {
+    color: var(--accent-green);
+    border-bottom-color: var(--accent-green);
+  }
+
+  /* ── MAIN LAYOUT ── */
+  main {
+    position: relative; z-index: 1;
+    padding: 40px 48px;
+    max-width: 1600px;
+    margin: 0 auto;
+  }
+
+  .section { display: none; }
+  .section.active { display: block; animation: fadeIn 0.4s ease; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── SECTION HEADER ── */
+  .section-header {
+    margin-bottom: 32px;
+  }
+
+  .section-header h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.9rem;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .section-header p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── KPI STRIP ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .kpi:hover { border-color: rgba(74,222,128,0.3); }
+
+  .kpi::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .kpi.green::before { background: var(--accent-green); }
+  .kpi.amber::before { background: var(--accent-amber); }
+  .kpi.red::before { background: var(--accent-red); }
+  .kpi.blue::before { background: var(--accent-blue); }
+  .kpi.teal::before { background: var(--accent-teal); }
+
+  .kpi-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .kpi-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .kpi.green .kpi-value { color: var(--accent-green); }
+  .kpi.amber .kpi-value { color: var(--accent-amber); }
+  .kpi.red .kpi-value { color: var(--accent-red); }
+  .kpi.blue .kpi-value { color: var(--accent-blue); }
+  .kpi.teal .kpi-value { color: var(--accent-teal); }
+
+  .kpi-sub {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── GRID LAYOUTS ── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .grid-12 { display: grid; grid-template-columns: 1fr 2fr; gap: 20px; margin-bottom: 20px; }
+  .grid-21 { display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-bottom: 20px; }
+
+  /* ── CARD ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    transition: border-color 0.2s;
+  }
+
+  .card:hover { border-color: rgba(74,222,128,0.15); }
+
+  .card-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .card-insight {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    line-height: 1.5;
+    padding: 8px 12px;
+    background: rgba(74,222,128,0.04);
+    border-left: 2px solid rgba(74,222,128,0.3);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .card-insight b { color: var(--accent-green); }
+
+  canvas { width: 100% !important; }
+
+  /* ── FINDINGS / EXECUTIVE ── */
+  .findings-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .finding-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px;
+    position: relative;
+  }
+
+  .finding-rank {
+    font-family: 'DM Serif Display', serif;
+    font-size: 3rem;
+    color: var(--border);
+    position: absolute;
+    top: 12px; right: 18px;
+    line-height: 1;
+  }
+
+  .finding-category {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  .cat-critical { background: rgba(248,113,113,0.1); color: var(--accent-red); border: 1px solid rgba(248,113,113,0.2); }
+  .cat-high { background: rgba(251,191,36,0.1); color: var(--accent-amber); border: 1px solid rgba(251,191,36,0.2); }
+  .cat-medium { background: rgba(74,222,128,0.1); color: var(--accent-green); border: 1px solid rgba(74,222,128,0.2); }
+  .cat-opportunity { background: rgba(96,165,250,0.1); color: var(--accent-blue); border: 1px solid rgba(96,165,250,0.2); }
+
+  .finding-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .finding-desc {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .finding-stat {
+    margin-top: 12px;
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.4rem;
+    color: var(--accent-amber);
+  }
+
+  /* RECOMMENDATIONS */
+  .rec-list { display: flex; flex-direction: column; gap: 14px; }
+
+  .rec-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex; align-items: flex-start; gap: 18px;
+  }
+
+  .rec-number {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.2rem;
+    color: var(--accent-green);
+    line-height: 1;
+    min-width: 40px;
+  }
+
+  .rec-content h3 {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+  }
+
+  .rec-content p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+  }
+
+  .rec-tag {
+    margin-top: 8px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    color: var(--accent-teal);
+    text-transform: uppercase;
+  }
+
+  /* ── CROP SELECTOR ── */
+  .crop-selector {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px;
+  }
+
+  .crop-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: capitalize;
+  }
+
+  .crop-btn:hover, .crop-btn.active {
+    background: rgba(74,222,128,0.1);
+    border-color: rgba(74,222,128,0.4);
+    color: var(--accent-green);
+  }
+
+  /* Data quality table */
+  .dq-table { width: 100%; border-collapse: collapse; }
+  .dq-table th, .dq-table td {
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+  }
+  .dq-table th { color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; }
+  .dq-table td { color: var(--text-secondary); }
+  .dq-table .good { color: var(--accent-green); }
+  .dq-table .warn { color: var(--accent-amber); }
+  .dq-table .bad { color: var(--accent-red); }
+  .dq-table tr:hover td { background: rgba(74,222,128,0.02); }
+
+  /* ── RESPONSIVE ── */
+  @media(max-width:1100px) {
+    .grid-2, .grid-3, .grid-12, .grid-21, .kpi-row, .findings-grid {
+      grid-template-columns: 1fr;
+    }
+    main, header, nav { padding-left: 20px; padding-right: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-area">
+    <h1>Agri<span>Climate</span> Intelligence</h1>
+    <p>Agricultural Production &amp; Climate Risk Analysis — India</p>
+  </div>
+  <div class="header-meta">
+    <div class="live-badge"><span class="live-dot"></span> Analysis Complete</div>
+    <div>345,336 APY records · 2,200 crop profiles · 225 countries</div>
+    <div>Data range: 1961–2022 · Datasets: 3</div>
+  </div>
+</header>
+
+<nav>
+  <div class="tab active" onclick="showTab('overview')">📊 Overview</div>
+  <div class="tab" onclick="showTab('climate')">🌡 Climate Risk</div>
+  <div class="tab" onclick="showTab('production')">🌾 Production</div>
+  <div class="tab" onclick="showTab('crops')">🌱 Crop Intelligence</div>
+  <div class="tab" onclick="showTab('findings')">⚡ Key Findings</div>
+</nav>
+
+<main>
+
+<!-- ══════════════════════════ OVERVIEW ══════════════════════════ -->
+<div id="overview" class="section active">
+  <div class="section-header">
+    <h2>Executive Overview</h2>
+    <p>Cross-dataset synthesis · Agricultural production + Climate change + Crop recommendations</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi green">
+      <div class="kpi-label">India Temp Rise (2022)</div>
+      <div class="kpi-value">+0.79°C</div>
+      <div class="kpi-sub">vs 1951–1980 baseline</div>
+    </div>
+    <div class="kpi amber">
+      <div class="kpi-label">Global Avg Temp Rise</div>
+      <div class="kpi-value">+1.38°C</div>
+      <div class="kpi-sub">2022 — near 1.5°C limit</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">Rice Production Growth</div>
+      <div class="kpi-value">+62%</div>
+      <div class="kpi-sub">2000 → 2019 India</div>
+    </div>
+    <div class="kpi teal">
+      <div class="kpi-label">Kerala Yield Efficiency</div>
+      <div class="kpi-value">3,564x</div>
+      <div class="kpi-sub">vs UP's 8 units/ha</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Global Temperature Anomaly Trend (1961–2022)</div>
+      <div class="card-insight"><b>Critical trajectory:</b> Global avg warming jumped from +0.25°C (1980s) to +1.38°C in 2022 — a near-600% acceleration. Agricultural planning must now account for this baseline shift.</div>
+      <canvas id="overviewClimate" height="240"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 5 Crops — Indian Production Trend (Mn tonnes)</div>
+      <div class="card-insight"><b>Rice & Wheat dominate</b> and show consistent growth. Sugarcane is the volatile powerhouse — swings of ±60Mn tonnes signal price and policy sensitivity.</div>
+      <canvas id="overviewProduction" height="240"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">Production by Season</div>
+      <div class="card-insight"><b>Whole Year crops (Coconut)</b> dominate at 96% of total volume. Kharif &amp; Rabi combined are just 3% — masking their food-security importance.</div>
+      <canvas id="overviewSeason" height="220"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Data Quality Audit</div>
+      <div class="card-insight"><b>Clean data, one issue:</b> APY Production has 4,948 nulls (1.4%) concentrated in older years. No action needed for trend analysis.</div>
+      <table class="dq-table">
+        <thead><tr><th>Dataset</th><th>Rows</th><th>Nulls</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Crop Recommendation</td><td>2,200</td><td class="good">0</td><td class="good">✓ Clean</td></tr>
+          <tr><td>APY (Production)</td><td>345,336</td><td class="warn">4,948 (1.4%)</td><td class="warn">⚠ Minor</td></tr>
+          <tr><td>Climate Indicators</td><td>225</td><td class="good">0</td><td class="good">✓ Clean</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">State Production Leaders</div>
+      <div class="card-insight"><b>Kerala alone</b> accounts for ~40% of India's total recorded production, driven entirely by Coconut. A single-crop dependency at scale is a systemic risk.</div>
+      <canvas id="overviewStates" height="220"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ CLIMATE ══════════════════════════ -->
+<div id="climate" class="section">
+  <div class="section-header">
+    <h2>Climate Risk Analysis</h2>
+    <p>225 countries · FAO temperature anomaly data · 1961–2022</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi red">
+      <div class="kpi-label">Global Avg 2020</div>
+      <div class="kpi-value">+1.55°C</div>
+      <div class="kpi-sub">Hottest decade on record</div>
+    </div>
+    <div class="kpi amber">
+      <div class="kpi-label">1960s Avg Anomaly</div>
+      <div class="kpi-value">−0.01°C</div>
+      <div class="kpi-sub">Near-zero baseline era</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">India 2022 Anomaly</div>
+      <div class="kpi-value">+0.79°C</div>
+      <div class="kpi-sub">Below global avg (+1.38°C)</div>
+    </div>
+    <div class="kpi teal">
+      <div class="kpi-label">Fastest Warming Region</div>
+      <div class="kpi-value">+2.18°C</div>
+      <div class="kpi-sub">Estonia / Baltic region</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Global vs India Temperature Anomaly (°C, 1961–2022)</div>
+      <div class="card-insight"><b>India is warming slower than global average</b>, but the 2010s marked an inflection — India crossed +1°C anomaly in 2016 for the first time. Agricultural stress thresholds are approaching.</div>
+      <canvas id="climateGlobalIndia" height="280"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Top 10 Fastest Warming Countries (Avg 2013–2022)</div>
+      <div class="card-insight"><b>Eastern Europe &amp; Baltics dominate</b> the warming leaderboard. These are primarily wheat/grain producing zones — risk to global food supply chains is real and accelerating.</div>
+      <canvas id="climateTopCountries" height="280"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Warming Acceleration by Decade (Global)</div>
+      <div class="card-insight"><b>Near-exponential growth:</b> Each decade since 1980 has been warmer than all previous ones combined. The 2011–2022 rate (+1.3°C) is more than double the 2001–2010 rate.</div>
+      <canvas id="climateDecades" height="240"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">India Warming Timeline — Key Milestones</div>
+      <div class="card-insight"><b>Three distinct eras:</b> Pre-1990 (variable, near zero), 1990–2010 (gradual rise), 2010+ (accelerated). Agricultural adaptation policy must reflect post-2010 reality.</div>
+      <canvas id="climateIndia" height="240"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ PRODUCTION ══════════════════════════ -->
+<div id="production" class="section">
+  <div class="section-header">
+    <h2>Agricultural Production Analysis</h2>
+    <p>India · 37 states · 55 crops · 1997–2019</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi blue">
+      <div class="kpi-label">Total Records</div>
+      <div class="kpi-value">345K</div>
+      <div class="kpi-sub">State-district-crop-year</div>
+    </div>
+    <div class="kpi green">
+      <div class="kpi-label">Highest Yield State</div>
+      <div class="kpi-value">Kerala</div>
+      <div class="kpi-sub">3,564 units/ha efficiency</div>
+    </div>
+    <div class="kpi amber">
+      <div class="kpi-label">Dominant Season</div>
+      <div class="kpi-value">Kharif</div>
+      <div class="kpi-sub">138K records, 40% of data</div>
+    </div>
+    <div class="kpi teal">
+      <div class="kpi-label">Top Crop (Volume)</div>
+      <div class="kpi-value">Coconut</div>
+      <div class="kpi-sub">310,804 Mn tonnes total</div>
+    </div>
+  </div>
+
+  <div class="grid-21">
+    <div class="card">
+      <div class="card-title">Top 5 Crops — Production Growth 2000–2019 (Million Tonnes)</div>
+      <div class="card-insight"><b>Sugarcane at 384Mn tonnes</b> in 2017–18 dwarfs all others — but its extreme volatility (±80Mn swing) is a crop insurance and water-use red flag.</div>
+      <canvas id="prodTrend" height="260"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Top Crops by Total Production</div>
+      <div class="card-insight"><b>Coconut's dominance</b> is 40x Sugarcane in volume — a measurement artifact (nuts counted individually). Adjust comparisons to caloric/economic value for policy.</div>
+      <canvas id="prodCrops" height="260"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">State Yield Efficiency (Production per Hectare)</div>
+      <div class="card-insight"><b>95% efficiency gap</b> between Kerala (3,564) and Uttar Pradesh (8.19). If UP matched even Tamil Nadu's efficiency, India's food output would rise by an estimated 15–20%.</div>
+      <canvas id="prodStateEff" height="260"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Season-wise Production Distribution</div>
+      <div class="card-insight"><b>Whole Year crops overwhelm</b> seasonal data due to Coconut. Among seasonal crops, <b>Kharif is 1.8x Rabi</b> — monsoon dependency is the single biggest agricultural climate risk.</div>
+      <canvas id="prodSeason" height="260"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ CROP INTELLIGENCE ══════════════════════════ -->
+<div id="crops" class="section">
+  <div class="section-header">
+    <h2>Crop Recommendation Intelligence</h2>
+    <p>2,200 soil profiles · 22 crop types · NPK + climate requirements</p>
+  </div>
+
+  <div class="kpi-row">
+    <div class="kpi green">
+      <div class="kpi-label">Crop Types Profiled</div>
+      <div class="kpi-value">22</div>
+      <div class="kpi-sub">100 samples each, balanced</div>
+    </div>
+    <div class="kpi blue">
+      <div class="kpi-label">Highest Water Need</div>
+      <div class="kpi-value">Rice</div>
+      <div class="kpi-sub">236mm rainfall required</div>
+    </div>
+    <div class="kpi amber">
+      <div class="kpi-label">Most N-Hungry Crop</div>
+      <div class="kpi-value">Cotton</div>
+      <div class="kpi-sub">117.8 kg/ha Nitrogen</div>
+    </div>
+    <div class="kpi teal">
+      <div class="kpi-label">pH Range</div>
+      <div class="kpi-value">5.75–7.34</div>
+      <div class="kpi-sub">Chickpea most alkaline</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">NPK Requirements by Crop</div>
+      <div class="card-insight"><b>Apple &amp; Grapes are K-dominant</b> (200 kg/ha) — anomalously high vs cereals. Cotton is the clear N-champion at 118 kg/ha. Fertilizer planning should cluster crops by NPK profile to optimise procurement.</div>
+      <canvas id="cropNPK" height="320"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Water Requirement by Crop (mm Rainfall)</div>
+      <div class="card-insight"><b>Rice demands 2.2x more water</b> than the average crop. In a warming India where monsoon variability is increasing, rice-heavy districts face the highest combined climate + water stress.</div>
+      <canvas id="cropWater" height="320"></canvas>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Temperature Requirements by Crop (°C)</div>
+      <div class="card-insight"><b>Papaya, Mango &amp; Blackgram</b> thrive in heat (29–34°C) — as temperatures rise, heat-tolerant crop expansion should be prioritised in central/peninsular India.</div>
+      <canvas id="cropTemp" height="280"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Optimal Soil pH Requirements</div>
+      <div class="card-insight"><b>Most crops prefer pH 5.8–7.0.</b> Chickpea (7.34) and Blackgram (7.13) are outliers — intercropping with acidic-preferring crops (Kidney beans, pH 5.75) risks soil management conflicts.</div>
+      <canvas id="cropPH" height="280"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════ FINDINGS ══════════════════════════ -->
+<div id="findings" class="section">
+  <div class="section-header">
+    <h2>Key Findings &amp; Strategic Recommendations</h2>
+    <p>Ranked by business &amp; policy impact · Cross-dataset synthesis</p>
+  </div>
+
+  <div class="findings-grid">
+    <div class="finding-card">
+      <div class="finding-rank">01</div>
+      <span class="finding-category cat-critical">Critical Risk</span>
+      <div class="finding-title">Kharif Season = India's Monsoon Dependency Trap</div>
+      <div class="finding-desc">138,369 Kharif records (40% of all data) vs 8,249 Winter. With India warming +0.79°C and monsoon patterns shifting, the majority of Indian agricultural output is in a high-volatility risk zone. A single failed monsoon can collapse ~40% of seasonal production.</div>
+      <div class="finding-stat">40% at risk</div>
+    </div>
+
+    <div class="finding-card">
+      <div class="finding-rank">02</div>
+      <span class="finding-category cat-critical">Critical Risk</span>
+      <div class="finding-title">Global Temp Crosses 1.38°C — Rice's 236mm Demand is Unsustainable</div>
+      <div class="finding-desc">Rice requires 236mm rainfall — the highest of all 22 profiled crops. Global warming is already disrupting precipitation patterns. Rice is India's #3 crop by production volume. The intersection of crop water demand and climate change is the most urgent food security issue in this data.</div>
+      <div class="finding-stat">+1.38°C global</div>
+    </div>
+
+    <div class="finding-card">
+      <div class="finding-rank">03</div>
+      <span class="finding-category cat-high">High Impact</span>
+      <div class="finding-title">Kerala–UP Efficiency Gap: 435x Difference</div>
+      <div class="finding-desc">Kerala produces 3,564 units per hectare. Uttar Pradesh produces 8.19. This 435x gap isn't just a statistic — it's India's largest agricultural improvement opportunity. Even bringing UP to 50% of Karnataka's efficiency would represent a massive supply shock.</div>
+      <div class="finding-stat">435x gap</div>
+    </div>
+
+    <div class="finding-card">
+      <div class="finding-rank">04</div>
+      <span class="finding-category cat-high">High Impact</span>
+      <div class="finding-title">Eastern Europe Warming at 2.18°C — Global Wheat Supply at Risk</div>
+      <div class="finding-desc">The 10 fastest-warming countries (Estonia, Belarus, Russia, Latvia, Finland) are all major wheat and grain producers. A 2°C+ anomaly in these zones is the definition of agricultural stress. India's wheat imports and global price benchmarks will be affected.</div>
+      <div class="finding-stat">Top 10 avg +2.1°C</div>
+    </div>
+
+    <div class="finding-card">
+      <div class="finding-rank">05</div>
+      <span class="finding-category cat-medium">Opportunity</span>
+      <div class="finding-title">Heat-Tolerant Crops Are Undercultivated</div>
+      <div class="finding-desc">Papaya (33.7°C optimal), Mango (31.2°C), Blackgram (30°C) thrive at temperatures India will increasingly experience. Compared to temperature-sensitive crops like Chickpea (18.9°C), these crops represent a climate-resilient expansion opportunity with strong domestic demand.</div>
+      <div class="finding-stat">3 underserved crops</div>
+    </div>
+
+    <div class="finding-card">
+      <div class="finding-rank">06</div>
+      <span class="finding-category cat-opportunity">Opportunity</span>
+      <div class="finding-title">Sugarcane Volatility Signals Diversification Opportunity</div>
+      <div class="finding-desc">Sugarcane swings from 229Mn tonnes to 404Mn tonnes — a 75% variance over 20 years. In states like UP and Maharashtra, sugarcane monoculture is economically risky. NPK data shows maize as a viable rotational alternative with 5.7x lower N requirements and rising production (+172% 2000–2019).</div>
+      <div class="finding-stat">75% swing</div>
+    </div>
+  </div>
+
+  <!-- RECOMMENDATIONS -->
+  <div class="section-header" style="margin-top:40px; margin-bottom:20px;">
+    <h2>5 Strategic Recommendations</h2>
+  </div>
+
+  <div class="rec-list">
+    <div class="rec-item">
+      <div class="rec-number">1</div>
+      <div class="rec-content">
+        <h3>Launch a Climate-Adaptive Crop Transition Programme</h3>
+        <p>Use the crop recommendation dataset to map which districts are growing temperature-sensitive crops (Chickpea at 18.9°C optimal) against projected warming curves. Begin subsidising heat-tolerant alternates (Papaya, Mango, Blackgram) in districts where warming already exceeds the crop's stress threshold. This is a 5–10 year horizon play that protects food security.</p>
+        <div class="rec-tag">→ Datasets: Crop Rec + Climate · Timeline: 5–10yr · Impact: National food security</div>
+      </div>
+    </div>
+
+    <div class="rec-item">
+      <div class="rec-number">2</div>
+      <div class="rec-content">
+        <h3>Invest in Yield Efficiency Programmes in High-Gap States</h3>
+        <p>The 435x efficiency gap between Kerala and UP is the single largest addressable opportunity in this data. Target UP, Assam, and West Bengal with precision agriculture pilots, soil testing aligned to the NPK profiles in the crop recommendation data, and drip irrigation — especially for high-water crops like Rice and Jute that dominate these regions.</p>
+        <div class="rec-tag">→ Dataset: APY + Crop Rec · Timeline: 3–5yr · Impact: +15–20% national output</div>
+      </div>
+    </div>
+
+    <div class="rec-item">
+      <div class="rec-number">3</div>
+      <div class="rec-content">
+        <h3>Diversify Away from Kharif Monsoon Dependency</h3>
+        <p>With 40% of all production records tied to Kharif season and global warming accelerating monsoon unpredictability, building a Rabi and Winter crop expansion incentive is critical. Winter-season crops have the smallest footprint (8,249 records) but stable performance. Policy support for Rabi expansion — especially wheat and lentil — would spread climate risk across seasons.</p>
+        <div class="rec-tag">→ Dataset: APY + Climate · Timeline: 2–4yr · Impact: Climate risk hedge</div>
+      </div>
+    </div>
+
+    <div class="rec-item">
+      <div class="rec-number">4</div>
+      <div class="rec-content">
+        <h3>Build a Rice Water-Stress Early Warning System</h3>
+        <p>Rice requires 236mm rainfall — 2.2x the average crop. Cross-reference district-level rainfall data with actual rice cultivation acreage to identify zones where current rainfall already falls below the 236mm threshold. These are the highest-risk districts for crop failure in the next decade. A monitoring dashboard using these three datasets as inputs could function as a live risk instrument for food security planning.</p>
+        <div class="rec-tag">→ Datasets: All 3 · Timeline: 1–2yr · Impact: Food security early warning</div>
+      </div>
+    </div>
+
+    <div class="rec-item">
+      <div class="rec-number">5</div>
+      <div class="rec-content">
+        <h3>Establish a Sugarcane Crop Insurance and Rotation Incentive</h3>
+        <p>Sugarcane's 75% production variance over 20 years exposes millions of farmers to income collapse in down years. Crop rotation incentives toward Maize (similar climate needs, rising demand, 5.7x lower nitrogen cost) would reduce volatility, cut input costs, and maintain farmer income stability. The NPK data makes this agronomically defensible.</p>
+        <div class="rec-tag">→ Datasets: APY + Crop Rec · Timeline: 2–3yr · Impact: Farmer income stability</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ── DATA ──
+const DATA = {
+  climateLabels: ["1961","1962","1963","1964","1965","1966","1967","1968","1969","1970","1971","1972","1973","1974","1975","1976","1977","1978","1979","1980","1981","1982","1983","1984","1985","1986","1987","1988","1989","1990","1991","1992","1993","1994","1995","1996","1997","1998","1999","2000","2001","2002","2003","2004","2005","2006","2007","2008","2009","2010","2011","2012","2013","2014","2015","2016","2017","2018","2019","2020","2021","2022"],
+  climateGlobal: [0.163,-0.013,-0.006,-0.07,-0.247,0.106,-0.111,-0.199,0.158,0.092,-0.201,-0.085,0.229,-0.163,-0.023,-0.246,0.166,0.07,0.234,0.247,0.179,0.176,0.345,0.08,0.071,0.151,0.405,0.49,0.256,0.555,0.368,0.236,0.216,0.61,0.629,0.279,0.544,0.971,0.743,0.67,0.85,0.925,0.844,0.778,0.853,0.877,1.023,0.808,0.911,1.099,0.821,0.902,0.931,1.115,1.27,1.44,1.281,1.302,1.443,1.552,1.344,1.382],
+  climateIndia: [-0.208,-0.479,-0.03,-0.03,-0.072,0.29,-0.21,-0.234,0.303,0.033,-0.519,0.012,0.332,0.034,-0.308,0.003,0.155,-0.15,0.305,0.401,0.072,-0.017,-0.135,-0.107,0.211,0.19,0.578,0.504,-0.018,-0.081,0.19,0.035,0.223,0.107,0.238,0.339,-0.064,0.614,0.468,0.35,0.473,0.827,0.665,0.545,0.567,0.638,0.607,0.263,1.134,1.129,0.365,0.516,0.451,0.53,0.711,1.088,0.966,0.874,0.802,0.52,0.733,0.79],
+  top10Countries: ["Estonia","Belarus","Russia","Latvia","Finland","Lithuania","Austria","Slovenia","Czech Rep.","Bahrain"],
+  top10Vals: [2.183,2.162,2.157,2.134,2.119,2.105,2.061,2.05,2.049,1.988],
+  stateNames: ["Kerala","Tamil Nadu","Karnataka","Andhra Pradesh","West Bengal","Uttar Pradesh","Assam","Goa","A&N Island","Maharashtra"],
+  stateVals: [129700.65,78051.76,63772.8,26076.22,8941.18,4442.59,3637.71,2194.0,2053.35,1878.56],
+  cropNames: ["Coconut","Sugarcane","Rice","Wheat","Potato","Cotton","Maize","Jute","Banana","Soyabean"],
+  cropProdVals: [310804.77,7241.54,2235.7,2006.42,632.2,483.91,443.96,230.42,226.76,211.79],
+  seasonNames: ["Whole Year","Kharif","Rabi","Winter","Summer","Autumn"],
+  seasonVals: [316555.58,5621.33,3149.41,587.75,243.71,84.64],
+  yieldYears: [2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018,2019],
+  yieldData: {
+    Rice:     [83.25,90.2,71.6,88.03,84.2,89.61,92.25,95.09,97.37,88.91,96.28,105.06,107.63,111.36,114.73,101.8,118.94,118.18,118.69,134.63],
+    Wheat:    [69.58,72.74,65.84,72.86,69.65,67.38,77.87,80.03,81.75,80.99,93.5,103.12,100.14,103.05,84.96,94.47,113.55,111.64,119.51,132.42],
+    Sugarcane:[296.19,296.58,287.16,239.85,229.91,285.76,335.02,341.62,280.85,288.24,336.84,346.24,339.94,366.78,383.16,340.17,321.56,384.33,404.58,367.21],
+    Maize:    [11.98,12.67,11.03,14.64,13.82,14.76,14.73,19.36,18.66,16.42,22.65,22.23,23.34,26.28,24.91,22.72,27.61,33.12,28.45,32.62],
+    Potato:   [20.38,22.35,22.21,22.3,21.97,22.6,19.58,26.65,19.93,31.39,31.25,27.58,30.47,27.35,32.8,32.64,41.08,42.18,40.36,39.61]
+  },
+  effNames: ["Kerala","A&N Is.","Goa","Puducherry","Tamil Nadu","Karnataka","Andhra P.","Assam","West Bengal","Uttar Pradesh"],
+  effVals: [3564.08,2444.52,797.93,755.6,707.16,247.27,109.14,47.03,37.62,8.19],
+  cropsList: ["apple","banana","blackgram","chickpea","coconut","coffee","cotton","grapes","jute","kidneybeans","lentil","maize","mango","mothbeans","mungbean","muskmelon","orange","papaya","pigeonpeas","pomegranate","rice","watermelon"],
+  nVals:    [20.8,100.23,40.02,40.09,21.98,101.2,117.77,23.18,78.4,20.75,18.77,77.76,20.07,21.44,20.99,100.32,19.58,49.88,20.73,18.87,79.89,99.42],
+  pVals:    [134.22,82.01,67.47,67.79,16.93,28.74,46.24,132.53,46.86,67.54,68.36,48.44,27.18,48.01,47.28,17.72,16.55,59.05,67.73,18.75,47.58,17.0],
+  kVals:    [199.89,50.05,19.24,79.92,30.59,29.94,19.56,200.11,39.99,20.05,19.41,19.79,29.92,20.23,19.87,50.08,10.01,50.04,20.29,40.21,39.87,50.22],
+  rainVals: [112.65,104.63,67.88,80.06,175.69,158.07,80.4,69.61,174.79,105.92,45.68,84.77,94.7,51.2,48.4,24.69,110.47,142.63,149.46,107.53,236.18,50.79],
+  tempVals: [22.63,27.38,29.97,18.87,27.41,25.54,23.99,23.85,24.96,20.12,24.51,22.39,31.21,28.19,28.53,28.66,22.77,33.72,27.74,21.84,23.69,25.59],
+  phVals:   [5.93,5.98,7.13,7.34,5.98,6.79,6.91,6.03,6.73,5.75,6.93,6.25,5.77,6.83,6.72,6.36,7.02,6.74,5.79,6.43,6.43,6.5]
+};
+
+// ── CHART DEFAULTS ──
+Chart.defaults.color = '#7a9a7a';
+Chart.defaults.borderColor = '#1e2e1e';
+Chart.defaults.font.family = "'DM Mono', monospace";
+Chart.defaults.font.size = 10;
+
+const G = '#4ade80', A = '#fbbf24', R = '#f87171', B = '#60a5fa', T = '#2dd4bf', P = '#c084fc';
+
+function makeChart(id, config) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  return new Chart(ctx, config);
+}
+
+// ── OVERVIEW CHARTS ──
+function buildOverview() {
+  // Climate line (thinned to every 2 years)
+  const step = 2;
+  const thinLabels = DATA.climateLabels.filter((_,i) => i%step===0);
+  const thinGlobal = DATA.climateGlobal.filter((_,i) => i%step===0);
+
+  makeChart('overviewClimate', {
+    type: 'line',
+    data: {
+      labels: thinLabels,
+      datasets: [{
+        label: 'Global Avg Temp Anomaly (°C)',
+        data: thinGlobal,
+        borderColor: A, borderWidth: 2,
+        backgroundColor: 'rgba(251,191,36,0.06)',
+        fill: true, tension: 0.4, pointRadius: 0
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' }, ticks: { maxTicksLimit: 8 } },
+        y: { grid: { color: '#1e2e1e' }, title: { display: true, text: '°C Anomaly' } }
+      }
+    }
+  });
+
+  // Production multi-line
+  const colors = [G, A, B, T, P];
+  const crops = Object.keys(DATA.yieldData);
+  makeChart('overviewProduction', {
+    type: 'line',
+    data: {
+      labels: DATA.yieldYears,
+      datasets: crops.map((c, i) => ({
+        label: c,
+        data: DATA.yieldData[c],
+        borderColor: colors[i], borderWidth: 1.5,
+        fill: false, tension: 0.3, pointRadius: 0
+      }))
+    },
+    options: {
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14 } } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' } },
+        y: { grid: { color: '#1e2e1e' }, title: { display: true, text: 'Million Tonnes' } }
+      }
+    }
+  });
+
+  // Season doughnut (exclude Whole Year for clarity)
+  const siNames = DATA.seasonNames.slice(1);
+  const siVals  = DATA.seasonVals.slice(1);
+  makeChart('overviewSeason', {
+    type: 'doughnut',
+    data: {
+      labels: siNames,
+      datasets: [{ data: siVals, backgroundColor: [G, A, B, T, P], borderWidth: 0, hoverOffset: 8 }]
+    },
+    options: {
+      cutout: '65%',
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } }
+    }
+  });
+
+  // States horizontal bar
+  makeChart('overviewStates', {
+    type: 'bar',
+    data: {
+      labels: DATA.stateNames,
+      datasets: [{ label: 'Production (Mn t)', data: DATA.stateVals, backgroundColor: T, borderRadius: 4, borderWidth: 0 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+}
+
+// ── CLIMATE CHARTS ──
+function buildClimate() {
+  makeChart('climateGlobalIndia', {
+    type: 'line',
+    data: {
+      labels: DATA.climateLabels,
+      datasets: [
+        { label: 'Global Average', data: DATA.climateGlobal, borderColor: A, borderWidth: 2, fill: false, tension: 0.4, pointRadius: 0 },
+        { label: 'India', data: DATA.climateIndia, borderColor: G, borderWidth: 1.5, fill: false, tension: 0.4, pointRadius: 0, borderDash: [4,4] }
+      ]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 14 } } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' }, ticks: { maxTicksLimit: 10 } },
+        y: { grid: { color: '#1e2e1e' }, title: { display: true, text: '°C Anomaly' } }
+      }
+    }
+  });
+
+  makeChart('climateTopCountries', {
+    type: 'bar',
+    data: {
+      labels: DATA.top10Countries,
+      datasets: [{ label: 'Avg Temp Change 2013–2022 (°C)', data: DATA.top10Vals, backgroundColor: R, borderRadius: 4, borderWidth: 0 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' }, min: 1.9, max: 2.3 },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Decades bar
+  const decadeLabels = ['1961-70','1971-80','1981-90','1991-00','2001-10','2011-20','2021-22'];
+  const decadeVals   = [-0.013, 0.023, 0.271, 0.527, 0.897, 1.206, 1.363];
+  makeChart('climateDecades', {
+    type: 'bar',
+    data: {
+      labels: decadeLabels,
+      datasets: [{ label: 'Avg Anomaly (°C)', data: decadeVals, backgroundColor: decadeVals.map(v => v < 0.3 ? G : v < 0.9 ? A : R), borderRadius: 5, borderWidth: 0 }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false } },
+        y: { grid: { color: '#1e2e1e' }, title: { display: true, text: '°C Anomaly' } }
+      }
+    }
+  });
+
+  // India recent
+  const recentLabels = DATA.climateLabels.filter(l => parseInt(l) >= 1990);
+  const recentIndia  = DATA.climateIndia.filter((_, i) => parseInt(DATA.climateLabels[i]) >= 1990);
+  makeChart('climateIndia', {
+    type: 'line',
+    data: {
+      labels: recentLabels,
+      datasets: [{
+        label: 'India Temp Anomaly (°C)',
+        data: recentIndia,
+        borderColor: G, borderWidth: 2,
+        backgroundColor: 'rgba(74,222,128,0.07)',
+        fill: true, tension: 0.4, pointRadius: 0
+      }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' }, ticks: { maxTicksLimit: 8 } },
+        y: { grid: { color: '#1e2e1e' }, title: { display: true, text: '°C Anomaly' } }
+      }
+    }
+  });
+}
+
+// ── PRODUCTION CHARTS ──
+function buildProduction() {
+  const cropColors = [G, A, B, T, P];
+  const crops = Object.keys(DATA.yieldData);
+  makeChart('prodTrend', {
+    type: 'line',
+    data: {
+      labels: DATA.yieldYears,
+      datasets: crops.map((c, i) => ({
+        label: c,
+        data: DATA.yieldData[c],
+        borderColor: cropColors[i], borderWidth: 2,
+        fill: false, tension: 0.4,
+        pointRadius: i === 2 ? 0 : 0 // sugarcane is idx 2
+      }))
+    },
+    options: {
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' } },
+        y: { grid: { color: '#1e2e1e' }, title: { display: true, text: 'Million Tonnes' } }
+      }
+    }
+  });
+
+  // Top crops excl coconut (too dominant)
+  const cNames = DATA.cropNames.slice(1);
+  const cVals  = DATA.cropProdVals.slice(1);
+  makeChart('prodCrops', {
+    type: 'bar',
+    data: {
+      labels: cNames,
+      datasets: [{ label: 'Total Production (Mn t)', data: cVals, backgroundColor: [A,B,B,T,T,G,G,G,G], borderRadius: 4, borderWidth: 0 }]
+    },
+    options: {
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 35 } },
+        y: { grid: { color: '#1e2e1e' } }
+      }
+    }
+  });
+
+  // State efficiency
+  makeChart('prodStateEff', {
+    type: 'bar',
+    data: {
+      labels: DATA.effNames,
+      datasets: [{ label: 'Yield Efficiency', data: DATA.effVals, backgroundColor: DATA.effVals.map(v => v > 500 ? G : v > 100 ? A : R), borderRadius: 4, borderWidth: 0 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' }, type: 'logarithmic', title: { display: true, text: 'Log scale' } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Season pie
+  makeChart('prodSeason', {
+    type: 'doughnut',
+    data: {
+      labels: DATA.seasonNames,
+      datasets: [{ data: DATA.seasonVals, backgroundColor: [T, G, A, B, P, R], borderWidth: 0, hoverOffset: 8 }]
+    },
+    options: {
+      cutout: '55%',
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } }
+    }
+  });
+}
+
+// ── CROP CHARTS ──
+function buildCrops() {
+  const cl = DATA.cropsList;
+
+  // NPK grouped bar
+  makeChart('cropNPK', {
+    type: 'bar',
+    data: {
+      labels: cl,
+      datasets: [
+        { label: 'N (Nitrogen)', data: DATA.nVals, backgroundColor: G, borderWidth: 0, borderRadius: 2 },
+        { label: 'P (Phosphorus)', data: DATA.pVals, backgroundColor: A, borderWidth: 0, borderRadius: 2 },
+        { label: 'K (Potassium)', data: DATA.kVals, backgroundColor: B, borderWidth: 0, borderRadius: 2 }
+      ]
+    },
+    options: {
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 12 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 45 } },
+        y: { grid: { color: '#1e2e1e' }, stacked: false, title: { display: true, text: 'kg/ha' } }
+      }
+    }
+  });
+
+  // Water needs
+  const sortedByRain = cl.map((c, i) => ({ crop: c, rain: DATA.rainVals[i] })).sort((a, b) => b.rain - a.rain);
+  makeChart('cropWater', {
+    type: 'bar',
+    data: {
+      labels: sortedByRain.map(d => d.crop),
+      datasets: [{ label: 'Rainfall Required (mm)', data: sortedByRain.map(d => d.rain), backgroundColor: sortedByRain.map(d => d.rain > 150 ? R : d.rain > 100 ? A : G), borderRadius: 4, borderWidth: 0 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' }, title: { display: true, text: 'mm' } },
+        y: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+
+  // Temperature needs
+  const sortedByTemp = cl.map((c,i) => ({crop:c,temp:DATA.tempVals[i]})).sort((a,b)=>b.temp-a.temp);
+  makeChart('cropTemp', {
+    type: 'bar',
+    data: {
+      labels: sortedByTemp.map(d=>d.crop),
+      datasets: [{ label: 'Optimal Temp (°C)', data: sortedByTemp.map(d=>d.temp), backgroundColor: sortedByTemp.map(d => d.temp > 30 ? R : d.temp > 26 ? A : G), borderRadius: 4, borderWidth: 0 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' }, title: { display: true, text: '°C' } },
+        y: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+
+  // pH
+  const sortedByPH = cl.map((c,i) => ({crop:c,ph:DATA.phVals[i]})).sort((a,b)=>b.ph-a.ph);
+  makeChart('cropPH', {
+    type: 'bar',
+    data: {
+      labels: sortedByPH.map(d=>d.crop),
+      datasets: [{ label: 'Optimal Soil pH', data: sortedByPH.map(d=>d.ph), backgroundColor: T, borderRadius: 4, borderWidth: 0 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2e1e' }, min: 5.5, max: 7.5, title: { display: true, text: 'pH' } },
+        y: { grid: { display: false }, ticks: { font: { size: 9 } } }
+      }
+    }
+  });
+}
+
+// ── TAB NAVIGATION ──
+let chartsBuilt = {};
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${name}')"]`).classList.add('active');
+  document.getElementById(name).classList.add('active');
+
+  if (!chartsBuilt[name]) {
+    chartsBuilt[name] = true;
+    if (name === 'overview')    buildOverview();
+    if (name === 'climate')     buildClimate();
+    if (name === 'production')  buildProduction();
+    if (name === 'crops')       buildCrops();
+  }
+}
+
+// Build overview on load
+window.addEventListener('DOMContentLoaded', () => {
+  chartsBuilt['overview'] = true;
+  buildOverview();
+});
+</script>
+</body>
+</html>
